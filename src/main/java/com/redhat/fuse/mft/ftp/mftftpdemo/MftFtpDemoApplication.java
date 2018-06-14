@@ -18,10 +18,27 @@ public class MftFtpDemoApplication {
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
+                // monitor the FTP server and copy files downstream
+                // emit a message when a file has been received
                 from("ftp://{{mft.ftp.user}}@{{mft.ftp.host}}/{{mft.ftp.inputPath}}?password={{mft.ftp.password}}&idempotent=true")
-                        .to("{{mft.localPath}}/inbox").log("${headers['CamelFileNameProduced']}");
+                        .to("{{mft.localPath}}/inbox")
+                        .transform().simple("${headers['CamelFileNameProduced']}")
+                        .to("direct:incomingFiles");
+
+                // Rename and upload received files
+                from("direct:incomingFiles")
+                        .setHeader("CamelFileName").simple("${headers['CamelFileName']}.upload.renamed.${date:now:yyMMddHHmmssZ}")
+                        .to("direct:outgoingFiles");
+
+                // Also send files for upload when a file is copied in the 'outbox' folder locally
                 from("{{mft.localPath}}/outbox")
-                        .to("ftp://{{mft.ftp.user}}@{{mft.ftp.host}}/{{mft.ftp.outputPath}}?password={{mft.ftp.password}}");
+                        .to("direct:outgoingFiles");
+
+                // Route for uploading to FTP
+                // The message body contains the path to the file being uploaded
+                from("direct:outgoingFiles")
+                        .to("ftp://{{mft.ftp.user}}@{{mft.ftp.host}}/{{mft.ftp.outputPath}}?password={{mft.ftp.password}}")
+                        .log("Sent ${headers['CamelFileName']}");
 
             }
         };
