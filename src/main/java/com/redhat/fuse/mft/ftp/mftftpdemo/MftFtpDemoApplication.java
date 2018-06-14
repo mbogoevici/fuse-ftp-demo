@@ -1,7 +1,6 @@
 package com.redhat.fuse.mft.ftp.mftftpdemo;
 
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.component.file.remote.FtpComponent;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -20,7 +19,7 @@ public class MftFtpDemoApplication {
             public void configure() throws Exception {
                 // monitor the FTP server and copy files downstream
                 // emit a message when a file has been received
-                from("ftp://{{mft.ftp.incoming.user}}@{{mft.ftp.incoming.host}}/{{mft.ftp.incoming.path}}?password={{mft.ftp.incoming.password}}&idempotent=true")
+                from("ftp://{{mft.ftp.incoming.user}}@{{mft.ftp.incoming.host}}/{{mft.ftp.incoming.path}}?password={{mft.ftp.incoming.password}}&localWorkDirectory=/tmp/ftp-fuse/localWorkDir&idempotent=true")
                         .to("{{mft.local.incoming.path}}")
                         .transform().simple("${headers['CamelFileNameProduced']}")
                         .to("direct:incomingFiles");
